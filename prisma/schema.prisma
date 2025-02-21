@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(uuid())
+  username        String         @unique
+  email           String         @unique
+  password        String
+  avatarUrl       String?        @default("https://cdn-icons-png.flaticon.com/512/266/266033.png")
+  totalWins       Int            @default(0)
+  totalLosses     Int            @default(0)
+  totalMatches    Int            @default(0)
+  createdAt       DateTime       @default(now())
+  gamesAsPlayer1  Game[]         @relation("Player1Games")
+  gamesAsPlayer2  Game[]         @relation("Player2Games")
+  notifications   Notification[]
+  scores          score[]
+  @@index([username, email])
+}
+
+model Game {
+  id           String      @id @default(uuid())
+  group        Group       @relation(fields: [groupId], references: [id])
+  groupId      String
+  player1      User        @relation("Player1Games", fields: [player1Id], references: [id])
+  player1Id    String
+  player2      User        @relation("Player2Games", fields: [player2Id], references: [id])
+  player2Id    String
+  winnerId     String?
+  status       GameStatus  @default(WAITING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  @@unique([player1Id, player2Id, groupId])
+  @@index([player1Id])
+  @@index([player2Id])
+}
+
+model Group {
+  id          String  @id @default(uuid())
+  name        String
+  imageUrl    String? @default("https://st4.depositphotos.com/11618586/41773/i/450/depositphotos_417734154-stock-photo-illustration-keyboard-buttons-wasd-neon.jpg")
+  description String?
+  levels      Level[]
+  game        Game[]
+}
+
+model Level {
+  id          String     @id @default(uuid())
+  text        String
+  difficulty  Difficulty @default(MEDIUM)
+  language    Language   @default(ENGLISH)
+  timeLimit   Int
+  timesPlayed Int        @default(0)
+  group       Group      @relation(fields: [groupId], references: [id])
+  groupId     String
+
+  @@index([difficulty])
+  @@index([language])
+  @@index([groupId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model TypingTest {
+  id        String @id @default(uuid())
+  text      String
+  timeLimit Int
+}
+
+model score {
+  id       String   @id @default(uuid())
+  accuracy Int      @default(0)
+  WPM      Int      @default(0)
+  rank     RankTier @default(BRONZE)
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String   @unique
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  INSANE
+}
+
+enum Language {
+  ENGLISH
+  FRENCH
+}
+
+enum RankTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  MASTER
+  GRANDMASTER
+}
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
